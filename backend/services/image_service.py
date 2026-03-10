@@ -13,7 +13,7 @@ def extract_exif_data(image_file = UploadFile) -> dict:
     }
     try:
         image = Image.open(image_file.file)
-        raw_exif = image._get_exif() if hasattr(image, 'getexif') else None
+        raw_exif = image.getexif() if hasattr(image, 'getexif') else None
         if not raw_exif:
             return extracted_data
         
@@ -31,8 +31,9 @@ def extract_exif_data(image_file = UploadFile) -> dict:
         if clean_exif.get("Model"):
             extracted_data["camera_model"] = str(clean_exif.get("Model")).strip(' \x00')
             
-        if clean_exif.get("ISOSpeedRatings"):
-            extracted_data["iso"] = int(clean_exif.get("ISOSpeedRatings"))
+        iso_val = clean_exif.get("ISOSpeedRatings") or clean_exif.get("ISO")
+        if iso_val:
+            extracted_data["iso"] = int(iso_val)
 
         # The data is a float, we clean it up appropriately
         f_number = clean_exif.get("FNumber")
