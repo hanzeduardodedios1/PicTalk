@@ -1,7 +1,7 @@
 # File Purpose: Hold Pydantic models (JSON structure)
 
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
 
 # Function defining our EXIF data
 class ExifData(BaseModel):
@@ -11,7 +11,10 @@ class ExifData(BaseModel):
     shutter_speed: Optional[str] = None
     aperture: Optional[float] = None
 
+# response_model
 class ImageProcessResponse(BaseModel):
     status: str
     compressed_image_url: str
-    exif: Optional[ExifData] = None
+    exif: Optional[Dict[str, Any]] = None
+    compression_stats: Optional[Dict[str, Any]] = None 
+    message: Optional[str] = None
