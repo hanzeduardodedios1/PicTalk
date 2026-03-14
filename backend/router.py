@@ -3,6 +3,8 @@
 from fastapi import APIRouter, UploadFile, File
 from schemas import ImageProcessResponse
 from services.image_service import extract_exif_data, compress_image
+from services.cloudinary_service import upload_to_cloudinary
+
 
 router = APIRouter()
 # Enter endpoints below
@@ -34,15 +36,20 @@ async def extract_image_data(image_file: UploadFile = File(...)):
 
     # Calculate the new size
     compressed_size_kb = len(compressed_bytes) / 1024 if compressed_bytes else 0
+
+    # Upload to Cloudinary
+    live_url = "Upload Failed"
+    if compressed_bytes:
+        live_url = upload_to_cloudinary(compressed_bytes)
     
     return {
         "status": "success",
-        "compressed_image_url": "Pending Cloudinary Integration", # Implement Cloudinary in later stage
+        "compressed_image_url": live_url, # Implement Cloudinary in later stage
         "exif": dynamic_exif,
         "compression_stats": {
             "original_size_kb": round(original_size_kb, 2),
             "new_size_kb": round(compressed_size_kb, 2),
             "saved_space": f"{round((1 - (compressed_size_kb / original_size_kb)) * 100 , 1)}%" if original_size_kb > 0 else "0%"
         },
-        "message": "Ready for Cloudinary!"
+        "message": "Image successfully processed and hosted"
     }
