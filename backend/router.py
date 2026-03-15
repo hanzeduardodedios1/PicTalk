@@ -1,12 +1,24 @@
 # Endpoints to handle JSON from APIs
 
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, Depends
 from schemas import ImageProcessResponse
 from services.image_service import extract_exif_data, compress_image
 from services.cloudinary_service import upload_to_cloudinary
+from sqlalchemy.orm import Session
+from database import SessionLocal
+import crud
 
 
 router = APIRouter()
+
+# Creates a database session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 # Enter endpoints below
 
 @router.post("/upload", response_model=ImageProcessResponse)
@@ -21,7 +33,7 @@ async def upload_image(file: UploadFile = File(...)):
     }
 
 @router.post("/extract", response_model=ImageProcessResponse)
-async def extract_image_data(image_file: UploadFile = File(...)):
+async def extract_image_data(image_file: UploadFile = File(...), db: Session = Depends(get_db)):
 
 
     # Get original size to compare
@@ -41,6 +53,16 @@ async def extract_image_data(image_file: UploadFile = File(...)):
     live_url = "Upload Failed"
     if compressed_bytes:
         live_url = upload_to_cloudinary(compressed_bytes)
+
+    # Upload everything to database
+    if live_url != "Upload Failed":
+        crud.create_post(
+            db=db,
+            image_url=live_url,
+            exif_data=dynamic_exif,
+            original_size=original_size_kb,
+            new_size=compressed_size_kb
+        )
     
     return {
         "status": "success",
@@ -51,5 +73,5 @@ async def extract_image_data(image_file: UploadFile = File(...)):
             "new_size_kb": round(compressed_size_kb, 2),
             "saved_space": f"{round((1 - (compressed_size_kb / original_size_kb)) * 100 , 1)}%" if original_size_kb > 0 else "0%"
         },
-        "message": "Image successfully processed and hosted"
+        "message": "Image successfully processed and saved to database"
     }
